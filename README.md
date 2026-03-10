@@ -1,45 +1,102 @@
 # AI Resume Analyzer Platform
 
-Production-ready AI-powered full-stack platform to upload resumes, extract skills, compare against job descriptions, and generate actionable improvement recommendations.
+A production-grade, AI-powered full-stack platform that analyzes resumes, extracts skills, matches them with job descriptions, and generates actionable improvement suggestions.
 
-## Project Overview
+[![Frontend](https://img.shields.io/badge/Frontend-React%20%2B%20TypeScript-0b7285)](./frontend)
+[![Backend](https://img.shields.io/badge/Backend-FastAPI-0f766e)](./backend)
+[![Database](https://img.shields.io/badge/Database-PostgreSQL-1d4ed8)](#database-model)
+[![Docker](https://img.shields.io/badge/DevOps-Docker%20Compose-1f2937)](./docker-compose.yml)
+[![Tests](https://img.shields.io/badge/Tests-Pytest-4b5563)](./backend/tests)
 
-This platform provides:
-- Secure JWT authentication
-- Resume upload (PDF/DOCX)
-- NLP-driven skill extraction
-- Job description matching with similarity scoring
+## Table of Contents
+
+- [Overview](#overview)
+- [Core Features](#core-features)
+- [Architecture](#architecture)
+- [Tech Stack](#tech-stack)
+- [Project Structure](#project-structure)
+- [API Endpoints](#api-endpoints)
+- [Database Model](#database-model)
+- [Environment Variables](#environment-variables)
+- [Quick Start (Docker)](#quick-start-docker)
+- [Local Development](#local-development)
+- [Testing and Code Quality](#testing-and-code-quality)
+- [Deployment](#deployment)
+- [Production Notes](#production-notes)
+
+## Overview
+
+AI Resume Analyzer Platform helps candidates and teams quickly evaluate resume quality against specific job requirements.
+
+It provides:
+- Resume score out of 100
+- Skill extraction and keyword coverage
 - Missing skill detection
-- Resume scoring out of 100 with score breakdown
-- User dashboard with upload history
-- Modern frontend with visual analytics
+- Job-fit match percentage
+- Improvement suggestions with weak-area highlighting
 
-## Architecture Diagram
+## Core Features
+
+### Authentication
+- User signup and login
+- JWT-based session auth
+- Secure password hashing with `passlib` + `bcrypt`
+
+### Resume Processing
+- Upload resume in `.pdf` or `.docx`
+- File type and file size validation
+- Text extraction from uploaded resumes
+
+### AI Analysis
+- Skill extraction using NLP and curated technical-skill vocabulary
+- Keyword matching against job description
+- Semantic similarity scoring using TF-IDF + cosine similarity
+- Missing skill detection and tailored recommendations
+- Composite resume scoring engine with section-level breakdown
+
+### Dashboard and UX
+- Landing page, login, signup
+- User dashboard with upload history
+- Resume upload and analysis workflow
+- Analysis result page with score cards and charts
+
+### Security and Reliability
+- Request payload validation using Pydantic
+- User-scoped data access
+- API rate-limiting middleware
+- Containerized stack with PostgreSQL + FastAPI + React
+
+## Architecture
 
 ```mermaid
 flowchart TD
-    U[User Browser] --> F[React + Vite Frontend]
-    F -->|REST API| B[FastAPI Backend]
-    B --> A[Auth Service JWT + Hashing]
-    B --> P[Parsing Service PDF/DOCX]
-    B --> N[NLP Analysis Service]
-    N --> S[spaCy + scikit-learn TF-IDF/Cosine]
-    B --> D[(PostgreSQL)]
-    B --> M[Rate Limiting + Validation Middleware]
+    U[User Browser] --> FE[React + TypeScript + Tailwind]
+    FE -->|REST API| BE[FastAPI Backend]
+
+    BE --> AUTH[JWT Auth + Password Hashing]
+    BE --> PARSER[PDF and DOCX Parser]
+    BE --> NLP[NLP Analysis Service]
+    NLP --> ML[spaCy + scikit-learn]
+
+    BE --> DB[(PostgreSQL)]
+
+    BE --> SEC[Validation + Rate Limiting]
 ```
 
 ## Tech Stack
 
-- Frontend: React, TypeScript, Tailwind CSS, Vite, Axios, Recharts
-- Backend: FastAPI, SQLAlchemy ORM, JWT (`python-jose`), Passlib
-- AI/NLP: spaCy, scikit-learn
-- Database: PostgreSQL
-- File Processing: PyPDF, python-docx
-- Testing: Pytest
-- Code Quality: ESLint, Prettier, Black
-- DevOps: Docker, Docker Compose
+| Layer | Stack |
+|---|---|
+| Frontend | React, TypeScript, Tailwind CSS, Vite, Axios, Recharts |
+| Backend | FastAPI, SQLAlchemy ORM, Pydantic, JWT (`python-jose`) |
+| AI/NLP | spaCy, scikit-learn |
+| Database | PostgreSQL |
+| File Parsing | PyPDF, python-docx |
+| Testing | Pytest |
+| Code Quality | ESLint, Prettier, Black |
+| DevOps | Docker, Docker Compose, Nginx |
 
-## Complete Project Structure
+## Project Structure
 
 ```text
 AI Resume Analyzer Platform/
@@ -55,10 +112,10 @@ AI Resume Analyzer Platform/
 |   |   |-- core/
 |   |   `-- main.py
 |   |-- tests/
-|   |-- Dockerfile
 |   |-- requirements.txt
-|   |-- .env.example
-|   `-- pyproject.toml
+|   |-- Dockerfile
+|   |-- pyproject.toml
+|   `-- .env.example
 |-- frontend/
 |   |-- src/
 |   |   |-- components/
@@ -68,41 +125,58 @@ AI Resume Analyzer Platform/
 |   |   |-- store/
 |   |   |-- types/
 |   |   `-- utils/
+|   |-- package.json
 |   |-- Dockerfile
 |   |-- nginx.conf
-|   |-- package.json
 |   `-- .env.example
 |-- docker-compose.yml
 |-- .env.example
 `-- README.md
 ```
 
-## Local Installation Guide
+## API Endpoints
 
-### 1) Backend Setup
+### Auth
 
-```bash
-cd backend
-pip install -r requirements.txt
-cp .env.example .env
-uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
-```
+| Method | Endpoint | Description |
+|---|---|---|
+| POST | `/api/auth/register` | Register user and return JWT token |
+| POST | `/api/auth/login` | Login user and return JWT token |
 
-Backend API docs:
-- Swagger: `http://localhost:8000/docs`
-- Health: `http://localhost:8000/health`
+### Resume
 
-### 2) Frontend Setup
+| Method | Endpoint | Description |
+|---|---|---|
+| POST | `/api/resume/upload` | Upload PDF/DOCX resume |
+| GET | `/api/resume/history` | Get user upload history |
 
-```bash
-cd frontend
-npm install
-cp .env.example .env
-npm run dev
-```
+### Analysis
 
-Frontend URL:
-- `http://localhost:5173`
+| Method | Endpoint | Description |
+|---|---|---|
+| POST | `/api/analyze` | Analyze resume against job description |
+| GET | `/api/results/{id}` | Fetch specific analysis result |
+
+OpenAPI docs after backend start:
+- `http://localhost:8000/docs`
+
+## Database Model
+
+### Tables
+
+| Table | Purpose |
+|---|---|
+| `users` | User profile and auth identity |
+| `resumes` | Resume metadata + extracted text |
+| `job_descriptions` | Job description text entered by user |
+| `analysis_results` | Match score, resume score, skills, suggestions |
+
+### Relationships
+- `users` -> one-to-many -> `resumes`
+- `users` -> one-to-many -> `job_descriptions`
+- `users` -> one-to-many -> `analysis_results`
+- `resumes` -> one-to-many -> `analysis_results`
+- `job_descriptions` -> one-to-many -> `analysis_results`
 
 ## Environment Variables
 
@@ -110,15 +184,15 @@ Frontend URL:
 
 | Variable | Description | Example |
 |---|---|---|
-| `PROJECT_NAME` | App name | `AI Resume Analyzer Platform` |
-| `API_PREFIX` | Global API prefix | `/api` |
-| `SECRET_KEY` | JWT signing key | `change-this-secret` |
-| `ACCESS_TOKEN_EXPIRE_MINUTES` | JWT expiry in minutes | `60` |
+| `PROJECT_NAME` | Application name | `AI Resume Analyzer Platform` |
+| `API_PREFIX` | API prefix | `/api` |
+| `SECRET_KEY` | JWT secret key | `change-this-secret` |
+| `ACCESS_TOKEN_EXPIRE_MINUTES` | Token expiration in minutes | `60` |
 | `DATABASE_URL` | SQLAlchemy DB URL | `postgresql+psycopg2://postgres:postgres@db:5432/resume_analyzer` |
-| `MAX_UPLOAD_SIZE_MB` | Max resume upload size | `5` |
-| `ALLOWED_FILE_EXTENSIONS` | Allowed types | `.pdf,.docx` |
-| `RATE_LIMIT_REQUESTS` | Max requests per window | `60` |
-| `RATE_LIMIT_WINDOW_SECONDS` | Window duration | `60` |
+| `MAX_UPLOAD_SIZE_MB` | Max file upload size | `5` |
+| `ALLOWED_FILE_EXTENSIONS` | Allowed extensions | `.pdf,.docx` |
+| `RATE_LIMIT_REQUESTS` | Request cap per window | `60` |
+| `RATE_LIMIT_WINDOW_SECONDS` | Rate-limit window size | `60` |
 
 ### Frontend (`frontend/.env`)
 
@@ -126,146 +200,102 @@ Frontend URL:
 |---|---|---|
 | `VITE_API_BASE_URL` | Backend API base URL | `http://localhost:8000/api` |
 
-## Database Design
+## Quick Start (Docker)
 
-### Tables
-- `users`
-  - one-to-many with `resumes`
-  - one-to-many with `job_descriptions`
-  - one-to-many with `analysis_results`
-- `resumes`
-  - stores metadata + extracted text
-- `job_descriptions`
-  - stores user-submitted target role description
-- `analysis_results`
-  - stores score, match percentage, detected/missing skills, suggestions
+### 1) Run full stack
 
-## API Documentation
-
-### Authentication
-- `POST /api/auth/register`
-  - Body: `email`, `full_name`, `password`
-  - Returns JWT + user profile
-- `POST /api/auth/login`
-  - Body: `email`, `password`
-  - Returns JWT + user profile
-
-### Resume
-- `POST /api/resume/upload`
-  - Multipart: `file` (`.pdf`/`.docx`)
-  - Requires Bearer token
-  - Extracts and stores raw text
-- `GET /api/resume/history`
-  - Requires Bearer token
-  - Returns upload history
-
-### Analysis
-- `POST /api/analyze`
-  - Body: `resume_id`, `job_title`, `job_description`
-  - Requires Bearer token
-  - Returns:
-    - resume score
-    - match percentage
-    - skills detected
-    - missing skills
-    - suggestions
-    - score breakdown
-- `GET /api/results/{id}`
-  - Requires Bearer token
-  - Returns full analysis record
-
-## AI Analysis Modules
-
-Implemented modules:
-- Skill extraction (rule + NLP assisted)
-- Keyword matching
-- TF-IDF semantic similarity scoring
-- Missing skill detection
-- Resume scoring engine + section-based suggestions
-
-## Security Features
-
-- Input validation with Pydantic
-- JWT auth middleware/dependency
-- Password hashing with Passlib + bcrypt
-- File type and size validation
-- API rate limiting middleware
-- User-scoped access to resumes and analysis results
-
-## Testing
-
-Run backend tests:
-
-```bash
-cd backend
-python -m pytest
+```powershell
+cd "d:\AI Resume Analyzer Platform"
+docker compose up --build
 ```
 
-Current coverage includes:
-- Authentication flows
-- Resume upload and history
-- Resume analysis and result retrieval
-
-## Docker Configuration
-
-### Start Full Stack
-
-```bash
-docker compose up --build -d
-```
-
-### Services
+### 2) Access services
 - Frontend: `http://localhost:3000`
 - Backend: `http://localhost:8000`
-- PostgreSQL: `localhost:5432`
+- Swagger: `http://localhost:8000/docs`
+- PostgreSQL (host mapping): `localhost:5433`
 
-### Stop
+### 3) Stop stack
 
-```bash
+```powershell
 docker compose down
 ```
 
-## Deployment Instructions
+## Local Development
 
-### Render
-1. Create PostgreSQL database service on Render.
-2. Deploy backend as a Web Service from `backend/`.
-3. Set backend env vars (`DATABASE_URL`, `SECRET_KEY`, etc.).
-4. Deploy frontend as a Static Site from `frontend/`.
-5. Set `VITE_API_BASE_URL` to backend public API URL.
+### Backend (PowerShell)
 
-### Railway
-1. Create new Railway project.
-2. Add PostgreSQL plugin.
-3. Deploy backend service from `backend/` and map env vars.
-4. Deploy frontend service from `frontend/`.
-5. Configure frontend env variable to Railway backend URL.
+```powershell
+cd "d:\AI Resume Analyzer Platform\backend"
+python -m venv .venv
+.\.venv\Scripts\Activate.ps1
+pip install -r requirements.txt
+Copy-Item .env.example .env -Force
+uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+```
 
-### AWS (Optional)
-1. Push Docker images to ECR.
-2. Deploy backend/frontend containers via ECS Fargate.
-3. Use RDS PostgreSQL for persistence.
-4. Attach ALB + HTTPS (ACM).
-5. Store secrets in AWS Secrets Manager/SSM.
+### Frontend (PowerShell)
 
-## Code Quality Commands
+```powershell
+cd "d:\AI Resume Analyzer Platform\frontend"
+npm install
+Copy-Item .env.example .env -Force
+npm run dev
+```
+
+Frontend dev URL:
+- `http://localhost:5173`
+
+## Testing and Code Quality
 
 ### Backend
-```bash
-cd backend
-black app tests
+
+```powershell
+cd "d:\AI Resume Analyzer Platform\backend"
 python -m pytest
+black app tests
 ```
 
 ### Frontend
-```bash
-cd frontend
+
+```powershell
+cd "d:\AI Resume Analyzer Platform\frontend"
 npm run lint
 npm run format
 npm run build
 ```
 
-## Notes
+## Deployment
 
-- spaCy model `en_core_web_sm` is optional. If unavailable, app falls back to `spacy.blank("en")`.
-- For production, replace `SECRET_KEY`, tighten CORS, and move rate limiting to Redis-based distributed limiter.
+### Render
+1. Create PostgreSQL service.
+2. Deploy backend (`backend/`) as Web Service.
+3. Set backend env vars.
+4. Deploy frontend (`frontend/`) as Static Site.
+5. Point `VITE_API_BASE_URL` to backend public URL.
+
+### Railway
+1. Create project and attach PostgreSQL.
+2. Deploy backend service from `backend/`.
+3. Deploy frontend service from `frontend/`.
+4. Configure frontend API base URL.
+
+### AWS (Optional)
+1. Push backend/frontend images to ECR.
+2. Deploy via ECS Fargate.
+3. Use RDS PostgreSQL.
+4. Configure ALB + HTTPS with ACM.
+5. Store secrets in SSM or Secrets Manager.
+
+## Production Notes
+
+- Replace `SECRET_KEY` before production deployment.
+- Restrict CORS origins to trusted frontend domain(s).
+- Move in-memory rate-limiter to Redis for distributed scaling.
+- Add Alembic migrations for schema lifecycle management.
+- Add centralized logging and metrics (CloudWatch/Grafana/Datadog).
+- spaCy `en_core_web_sm` is optional; app gracefully falls back to `spacy.blank("en")`.
+
+---
+
+This README intentionally does not include screenshots.
